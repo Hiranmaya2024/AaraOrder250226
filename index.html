@@ -3,81 +3,46 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AAradhya Order App</title>
+
 <style>
 body{font-family:Arial;margin:0;background:#f1f3f6}
-.top{background:#0b5ed7;color:#fff;padding:12px;font-size:18px}
+.header{background:#0b5ed7;color:#fff;padding:14px;font-size:18px}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:10px}
-.card{background:#fff;padding:12px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.card{background:#fff;padding:12px;border-radius:10px;
+box-shadow:0 2px 6px rgba(0,0,0,.1)}
 .loading{text-align:center;padding:20px;font-weight:bold}
 </style>
 </head>
 
 <body>
 
-<div class="top">AAradhya Order Book</div>
+<div class="header">AAradhya Order Book</div>
 <div id="screen" class="loading">Loading catalogue...</div>
 
 <script>
 
-const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRV-mdlstMlh93FOZn0udO4eCUyryl_pDziljwksKkWGVdxE2LH8excr6D-cABN61O-JrFigpecb42i/pub?gid=0&single=true&output=csv";
-const proxy = "https://api.allorigins.win/raw?url=";
+function callback(data){
 
-function parseCSV(text){
+const headers = data[0];
 
-const rows = text.trim().split("\n").slice(1);
+const rows = data.slice(1).map(r=>({
+company:r[0],
+item:r[1]
+}));
 
-return rows.map(r=>{
-const c = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-return {
-company:c[0],
-item:c[1]
-};
-}).filter(r=>r.company);
-}
-
-function showCompanies(data){
-
-const companies=[...new Set(data.map(d=>d.company))];
+const companies=[...new Set(rows.map(r=>r.company))];
 
 screen.className="grid";
 
 screen.innerHTML = companies.map(c=>`
 <div class="card">${c}</div>
 `).join("");
+
 }
-
-function loadData(url){
-
-fetch(url)
-.then(r=>{
-if(!r.ok) throw new Error("Fetch failed");
-return r.text();
-})
-.then(text=>{
-const data=parseCSV(text);
-showCompanies(data);
-})
-.catch(err=>{
-screen.innerHTML="⚠ Direct load failed… trying backup";
-loadBackup();
-});
-}
-
-function loadBackup(){
-
-fetch(proxy + encodeURIComponent(sheetURL))
-.then(r=>r.text())
-.then(text=>{
-const data=parseCSV(text);
-showCompanies(data);
-})
-.catch(err=>{
-screen.innerHTML="❌ Unable to load catalogue.<br><br>Check:<br>1. Internet connection<br>2. Sheet is public<br>3. Try in Chrome";
-});
-}
-
-loadData(sheetURL);
 
 </script>
+
+<script src="https://script.google.com/macros/s/AKfycbxe_e5dcuA0WK1X2iWA1b65FXLDt9DomJWp9zr0q7bhxAZQq1OjEFO0DUny2_Uy3r4-/exec"></script>
+
 </body>
 </html>
