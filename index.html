@@ -61,8 +61,7 @@ Party: <input id="party" placeholder="Enter shop name">
 
 <script>
 
-const url="https://docs.google.com/spreadsheets/d/e/2PACX-1vRV-mdlstMlh93FOZn0udO4eCUyryl_pDziljwksKkWGVdxE2LH8excr6D-cABN61O-JrFigpecb42i/pub?gid=0&single=true&output=csv";
-
+const url="https://api.allorigins.win/raw?url=https://docs.google.com/spreadsheets/d/e/2PACX-1vRV-mdlstMlh93FOZn0udO4eCUyryl_pDziljwksKkWGVdxE2LH8excr6D-cABN61O-JrFigpecb42i/pub?gid=0&single=true&output=csv";
 let data=[],cart={},mode="company",currentCompany="";
 
 function parseCSV(text){
