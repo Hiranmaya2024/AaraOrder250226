@@ -1,78 +1,69 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Aaradhya Pharma Order App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aaradhya Pharma</title>
 
 <style>
-body{font-family:Arial;margin:0;background:#f5f5f5}
-
-/* SCREENS */
-.screen{display:none;padding:15px}
+body{font-family:arial;margin:0;background:#f2f2f2}
+header{
+background:#0a7cff;color:white;padding:12px;
+display:flex;justify-content:space-between;align-items:center
+}
+.screen{display:none;padding:12px}
 .active{display:block}
 
-/* WELCOME */
-#welcome{
-display:flex;align-items:center;justify-content:center;
-height:100vh;font-size:22px;font-weight:bold;
-background:#0a7cff;color:white;text-align:center;cursor:pointer
+.company,.card{
+background:white;margin:8px 0;padding:12px;border-radius:10px;
+box-shadow:0 2px 5px rgba(0,0,0,.1)
 }
 
-/* COMPANY GRID */
-.company{
-background:white;padding:15px;margin:8px 0;border-radius:10px;
-box-shadow:0 2px 5px rgba(0,0,0,.1);
-font-weight:bold;cursor:pointer
-}
-
-/* PRODUCT CARD */
-.card{
-background:white;border-radius:12px;padding:12px;margin:10px 0;
-box-shadow:0 2px 6px rgba(0,0,0,.12)
-}
-.row{display:flex;justify-content:space-between;align-items:center}
-.qty{
-display:flex;gap:8px;align-items:center
-}
 button{
 background:#0a7cff;color:white;border:none;
 padding:8px 14px;border-radius:8px;font-weight:bold
 }
-button:active{transform:scale(.95)}
-.place{width:100%;margin-top:15px;font-size:16px}
 
-/* SUMMARY */
-.summary{background:white;padding:12px;border-radius:10px;margin:8px 0}
-
+.qty{display:flex;gap:8px;align-items:center}
+.loading{height:100vh;display:flex;align-items:center;justify-content:center;font-size:20px}
 </style>
 </head>
 
 <body>
 
-<!-- WELCOME -->
-<div id="welcome" class="active">
-Welcome To Aaradhya Pharmaceuticals<br/>Tap Anywhere
-</div>
+<!-- LOADING -->
+<div id="loading" class="loading active">Loading...</div>
 
-<!-- COMPANY SCREEN -->
-<div id="companyScreen" class="screen">
-<h3>Select Company</h3>
+<!-- WELCOME -->
+<div id="welcome" class="loading">Welcome To Aaradhya Pharmaceuticals</div>
+
+<!-- HOME -->
+<div id="home" class="screen">
+<header>
+<b>Companies</b>
+<button onclick="openCart()">🛒 Cart</button>
+</header>
 <div id="companyList"></div>
 </div>
 
-<!-- PRODUCT SCREEN -->
-<div id="productScreen" class="screen">
-<h3 id="companyTitle"></h3>
+<!-- PRODUCTS -->
+<div id="products" class="screen">
+<header>
+<button onclick="showHome()">⬅ Back</button>
+<b id="companyTitle"></b>
+<button onclick="openCart()">🛒</button>
+</header>
 <div id="productList"></div>
-<button class="place" onclick="showSummary()">Place Order</button>
+<button onclick="openCart()" style="width:100%">Place Order</button>
 </div>
 
-<!-- SUMMARY SCREEN -->
-<div id="summaryScreen" class="screen">
-<h3>Order Summary</h3>
-<div id="summary"></div>
-<button class="place" onclick="shareWhatsApp()">Share on WhatsApp</button>
+<!-- SUMMARY -->
+<div id="summary" class="screen">
+<header>
+<button onclick="showHome()">🏠 Home</button>
+<b>Order Summary</b>
+</header>
+<div id="summaryData"></div>
+<button onclick="shareWhatsApp()" style="width:100%">Share Order</button>
 </div>
 
 <script>
@@ -80,22 +71,21 @@ const csvUrl="https://docs.google.com/spreadsheets/d/e/2PACX-1vRV-mdlstMlh93FOZn
 
 let data=[],cart={},selectedCompany="";
 
-/* WELCOME AUTO NEXT */
-setTimeout(()=>showCompany(),5000)
-document.getElementById("welcome").onclick=showCompany
+setTimeout(()=>{
+document.getElementById("loading").classList.remove("active")
+document.getElementById("welcome").classList.add("active")
+},1500)
 
-function showCompany(){
-switchScreen("companyScreen")
+document.getElementById("welcome").onclick=()=>{
 loadCSV()
+showScreen("home")
 }
 
-/* SCREEN SWITCH */
-function switchScreen(id){
-document.querySelectorAll(".screen,#welcome").forEach(s=>s.classList.remove("active"))
+function showScreen(id){
+document.querySelectorAll(".screen,.loading").forEach(s=>s.classList.remove("active"))
 document.getElementById(id).classList.add("active")
 }
 
-/* LOAD CSV */
 async function loadCSV(){
 const res=await fetch(csvUrl)
 const text=await res.text()
@@ -108,17 +98,13 @@ company:c[0],
 name:c[1],
 pack:c[2],
 rate:c[3],
-mrp:c[4],
-tax:c[5],
-composition:c[6],
-scheme:c[7]
+mrp:c[4]
 }
 })
 
 showCompanies()
 }
 
-/* SHOW COMPANIES */
 function showCompanies(){
 let companies=[...new Set(data.map(d=>d.company))]
 let html=""
@@ -128,28 +114,25 @@ html+=`<div class="company" onclick="showProducts('${c}')">${c}</div>`
 document.getElementById("companyList").innerHTML=html
 }
 
-/* SHOW PRODUCTS */
 function showProducts(company){
 selectedCompany=company
-switchScreen("productScreen")
+showScreen("products")
 document.getElementById("companyTitle").innerText=company
 
 let items=data.filter(d=>d.company===company)
 let html=""
 
-items.forEach((item,i)=>{
+items.forEach(item=>{
 html+=`
 <div class="card">
 <b>${item.name}</b><br>
 ${item.pack}<br>
-MRP: ₹${item.mrp} | Rate: ₹${item.rate}
+MRP ₹${item.mrp} | Rate ₹${item.rate}
 
-<div class="row">
 <div class="qty">
 <button onclick="changeQty('${item.name}',-1)">-</button>
-<span id="q_${item.name}">0</span>
+<span id="q_${item.name}">${cart[item.name]||0}</span>
 <button onclick="changeQty('${item.name}',1)">+</button>
-</div>
 </div>
 </div>`
 })
@@ -157,17 +140,14 @@ MRP: ₹${item.mrp} | Rate: ₹${item.rate}
 document.getElementById("productList").innerHTML=html
 }
 
-/* QTY CHANGE */
 function changeQty(name,val){
-if(!cart[name]) cart[name]=0
-cart[name]+=val
-if(cart[name]<0) cart[name]=0
+cart[name]=(cart[name]||0)+val
+if(cart[name]<0)cart[name]=0
 document.getElementById("q_"+name).innerText=cart[name]
 }
 
-/* SUMMARY */
-function showSummary(){
-switchScreen("summaryScreen")
+function openCart(){
+showScreen("summary")
 let html="",total=0
 
 for(let name in cart){
@@ -175,19 +155,16 @@ if(cart[name]>0){
 let item=data.find(d=>d.name===name)
 let value=cart[name]*item.rate
 total+=value
-html+=`<div class="summary">
-${name} x ${cart[name]} = ₹${value}
-</div>`
+html+=`<div class="card">${name} x ${cart[name]} = ₹${value}</div>`
 }
 }
 
-html+=`<h3>Total: ₹${total}</h3>`
-document.getElementById("summary").innerHTML=html
+html+=`<h3>Total ₹${total}</h3>`
+document.getElementById("summaryData").innerHTML=html
 }
 
-/* WHATSAPP SHARE */
 function shareWhatsApp(){
-let text="Order - Aaradhya Pharmaceuticals%0A"
+let text="Aaradhya Pharma Order%0A"
 let total=0
 
 for(let name in cart){
@@ -198,10 +175,12 @@ total+=value
 text+=`${name} x ${cart[name]} = ₹${value}%0A`
 }
 }
-text+=`Total = ₹${total}`
 
+text+=`Total ₹${total}`
 window.open(`https://wa.me/?text=${text}`)
 }
+
+function showHome(){showScreen("home")}
 </script>
 
 </body>
