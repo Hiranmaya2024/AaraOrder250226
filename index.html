@@ -7,18 +7,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
-
 body{font-family:Poppins;margin:0;background:#f4f6f9}
-
 .header{background:#0b5ed7;color:#fff;padding:14px;font-size:18px;font-weight:600}
-
 .container{padding:10px}
-
 .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 @media(min-width:700px){.grid2{grid-template-columns:repeat(3,1fr)}}
 
 .card{background:#fff;padding:12px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
-
 .item-title{font-weight:600;font-size:13px;min-height:34px}
 .meta{font-size:12px}
 
@@ -30,17 +25,11 @@ width:32px;height:32px;border:none;background:#0b5ed7;color:#fff;font-size:18px;
 width:45px;text-align:center;margin:0 6px;border:1px solid #ddd;border-radius:6px;height:32px
 }
 
-button.addbtn{
-background:#198754;color:#fff;border:none;padding:7px;border-radius:6px;width:100%;margin-top:6px;font-size:12px
-}
-
 .fab{
 position:fixed;bottom:20px;right:20px;
 background:#198754;color:#fff;padding:14px 18px;border-radius:50px;font-weight:600
 }
-
 .hidden{display:none}
-
 </style>
 </head>
 
@@ -49,12 +38,9 @@ background:#198754;color:#fff;padding:14px 18px;border-radius:50px;font-weight:6
 <div class="header" id="header">🏢 Companies</div>
 
 <div class="container">
-
 <input type="text" id="party" placeholder="Enter Party Name">
-
 <div id="companyScreen" class="grid2"></div>
 <div id="itemScreen" class="grid2 hidden"></div>
-
 </div>
 
 <div class="fab" onclick="openCart()">🛒 Cart (<span id="cartCount">0</span>)</div>
@@ -63,7 +49,7 @@ background:#198754;color:#fff;padding:14px 18px;border-radius:50px;font-weight:6
 
 const url="https://docs.google.com/spreadsheets/d/e/2PACX-1vRV-mdlstMlh93FOZn0udO4eCUyryl_pDziljwksKkWGVdxE2LH8excr6D-cABN61O-JrFigpecb42i/pub?gid=0&single=true&output=csv";
 
-let data=[],cart=[],currentCompany="";
+let data=[],cart={},currentCompany="";
 
 fetch(url).then(r=>r.text()).then(csv=>{
 let rows=csv.split("\n").slice(1);
@@ -78,6 +64,8 @@ loadCompanies();
 
 function loadCompanies(){
 header.innerHTML="🏢 Companies";
+companyScreen.classList.remove("hidden");
+itemScreen.classList.add("hidden");
 
 let companies=[...new Set(data.map(d=>d.company))];
 
@@ -98,7 +86,9 @@ itemScreen.classList.remove("hidden");
 let items=data.filter(d=>d.company===comp);
 
 itemScreen.innerHTML=items.map((i,index)=>`
+
 <div class="card">
+
 <div class="item-title">${i.name}</div>
 <div class="meta">${i.pack}</div>
 <div class="meta">MRP: ${i.mrp}</div>
@@ -106,48 +96,59 @@ itemScreen.innerHTML=items.map((i,index)=>`
 <div class="meta">Sch: ${i.scheme||"-"}</div>
 
 <div class="qty-control">
-<button onclick="changeQty(${index},-1)">−</button>
-<input type="number" id="qty_${index}" value="0">
-<button onclick="changeQty(${index},1)">+</button>
+<button onclick="updateQty('${i.name}',${i.rate},${index},-1)">−</button>
+<input type="number" id="qty_${index}" value="0"
+onchange="manualQty('${i.name}',${i.rate},${index})">
+<button onclick="updateQty('${i.name}',${i.rate},${index},1)">+</button>
 </div>
 
-<button class="addbtn" onclick="addCart('${i.name}','${i.pack}',${i.rate},${index})">Add</button>
-
 </div>
+
 `).join("");
 }
 
-function changeQty(index,delta){
+function updateQty(name,rate,index,delta){
 
 let input=document.getElementById("qty_"+index);
-let value=parseInt(input.value)||0;
-value+=delta;
-if(value<0)value=0;
-input.value=value;
+let qty=parseInt(input.value)||0;
+
+qty+=delta;
+if(qty<0)qty=0;
+
+input.value=qty;
+syncCart(name,rate,qty);
 }
 
-function addCart(name,pack,rate,index){
-
+function manualQty(name,rate,index){
 let qty=document.getElementById("qty_"+index).value;
-if(qty<=0)return;
+syncCart(name,rate,qty);
+}
 
-cart.push({name,pack,rate,qty});
-cartCount.innerText=cart.length;
+function syncCart(name,rate,qty){
 
-document.getElementById("qty_"+index).value=0;
+if(qty<=0){
+delete cart[name];
+}else{
+cart[name]={qty:parseInt(qty),rate:rate};
+}
+
+cartCount.innerText=Object.keys(cart).length;
 }
 
 function openCart(){
 
 let total=0;
+let html="";
 
-let html=cart.map(c=>{
-let amt=c.qty*c.rate;
+for(let item in cart){
+let amt=cart[item].qty*cart[item].rate;
 total+=amt;
 
-return `<div class="card">${c.name}<br>${c.qty} x ₹${c.rate}
-<div style="float:right;font-weight:600">₹${amt.toFixed(2)}</div></div>`
-}).join("");
+html+=`<div class="card">${item}<br>
+${cart[item].qty} x ₹${cart[item].rate}
+<div style="float:right;font-weight:600">₹${amt.toFixed(2)}</div>
+</div>`;
+}
 
 html+=`<div class="card"><b>Total ₹${total.toFixed(2)}</b></div>`;
 
