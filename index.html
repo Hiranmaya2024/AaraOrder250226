@@ -2,159 +2,229 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AAradhya Order Book</title>
+<title>AAradhya Order App</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
-body{font-family:Poppins;margin:0;background:#f4f6f9}
-.header{background:#0b5ed7;color:#fff;padding:14px;font-size:18px;font-weight:600}
-.container{padding:10px}
-.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-@media(min-width:700px){.grid2{grid-template-columns:repeat(3,1fr)}}
 
-.card{background:#fff;padding:12px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
-.item-title{font-weight:600;font-size:13px;min-height:34px}
-.meta{font-size:12px}
+body{font-family:Inter;margin:0;background:#f1f3f6}
 
-.qty-control{display:flex;align-items:center;margin-top:6px}
-.qty-control button{
-width:32px;height:32px;border:none;background:#0b5ed7;color:#fff;font-size:18px;border-radius:6px
-}
-.qty-control input{
-width:45px;text-align:center;margin:0 6px;border:1px solid #ddd;border-radius:6px;height:32px
+.topbar{
+background:#0b5ed7;
+padding:10px;
+color:#fff;
 }
 
-.fab{
-position:fixed;bottom:20px;right:20px;
-background:#198754;color:#fff;padding:14px 18px;border-radius:50px;font-weight:600
+.search{
+width:100%;
+padding:10px;
+border:none;
+border-radius:8px;
 }
+
+.party{
+background:#fff;
+padding:8px 12px;
+font-size:13px;
+font-weight:600;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+padding:10px;
+}
+
+.card{
+background:#fff;
+border-radius:12px;
+padding:12px;
+box-shadow:0 2px 6px rgba(0,0,0,.08);
+}
+
+.title{font-size:13px;font-weight:600;height:34px;overflow:hidden}
+
+.price{font-size:16px;font-weight:700;color:#198754}
+.mrp{text-decoration:line-through;font-size:12px;color:#777}
+
+.badge{
+background:#e7f1ff;
+color:#0b5ed7;
+font-size:11px;
+padding:3px 6px;
+border-radius:6px;
+display:inline-block;
+margin-top:4px;
+}
+
+.qty{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-top:8px;
+}
+
+.qty button{
+background:#0b5ed7;
+border:none;
+color:#fff;
+width:28px;height:28px;
+border-radius:6px;
+font-size:18px;
+}
+
+.cartbar{
+position:fixed;
+bottom:0;
+width:100%;
+background:#fff;
+padding:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+box-shadow:0 -2px 6px rgba(0,0,0,.1);
+}
+
+.cartbtn{
+background:#ff9f00;
+color:#fff;
+padding:10px 16px;
+border:none;
+border-radius:8px;
+font-weight:600;
+}
+
 .hidden{display:none}
+
 </style>
 </head>
 
 <body>
 
-<div class="header" id="header">🏢 Companies</div>
-
-<div class="container">
-<input type="text" id="party" placeholder="Enter Party Name">
-<div id="companyScreen" class="grid2"></div>
-<div id="itemScreen" class="grid2 hidden"></div>
+<div class="topbar">
+<input class="search" placeholder="Search company or product" onkeyup="searchData(this.value)">
 </div>
 
-<div class="fab" onclick="openCart()">🛒 Cart (<span id="cartCount">0</span>)</div>
+<div class="party">
+Party: <input id="party" placeholder="Enter shop name">
+</div>
+
+<div id="screen" class="grid"></div>
+
+<div class="cartbar">
+<div><b id="cartItems">0 items</b><br>₹<span id="cartTotal">0</span></div>
+<button class="cartbtn" onclick="openCart()">View Cart</button>
+</div>
 
 <script>
 
 const url="https://docs.google.com/spreadsheets/d/e/2PACX-1vRV-mdlstMlh93FOZn0udO4eCUyryl_pDziljwksKkWGVdxE2LH8excr6D-cABN61O-JrFigpecb42i/pub?gid=0&single=true&output=csv";
 
-let data=[],cart={},currentCompany="";
+let data=[],cart={},mode="company",currentCompany="";
 
 fetch(url).then(r=>r.text()).then(csv=>{
 let rows=csv.split("\n").slice(1);
 
 data=rows.map(r=>{
 let c=r.split(",");
-return{company:c[0],name:c[1],pack:c[2],rate:parseFloat(c[3]),mrp:c[4],scheme:c[7]}
+return{company:c[0],name:c[1],pack:c[2],rate:+c[3],mrp:c[4],scheme:c[7]}
 });
 
-loadCompanies();
+showCompanies();
 });
 
-function loadCompanies(){
-header.innerHTML="🏢 Companies";
-companyScreen.classList.remove("hidden");
-itemScreen.classList.add("hidden");
+function showCompanies(){
+mode="company";
 
 let companies=[...new Set(data.map(d=>d.company))];
 
-companyScreen.innerHTML=companies.map(c=>`
-<div class="card" onclick="openItems('${c}')"><b>${c}</b></div>
-`).join("");
+screen.innerHTML=companies.map(c=>`
+<div class="card" onclick="openCompany('${c}')">
+<div class="title">${c}</div>
+</div>`).join("");
 }
 
-function openItems(comp){
+function openCompany(c){
+mode="product";
+currentCompany=c;
 
-currentCompany=comp;
-header.innerHTML=`⬅ ${comp}`;
-header.onclick=loadCompanies;
+let items=data.filter(d=>d.company===c);
 
-companyScreen.classList.add("hidden");
-itemScreen.classList.remove("hidden");
+screen.innerHTML=items.map(i=>productCard(i)).join("");
+}
 
-let items=data.filter(d=>d.company===comp);
+function productCard(i){
 
-itemScreen.innerHTML=items.map((i,index)=>`
+let qty=cart[i.name]?.qty||0;
 
+return`
 <div class="card">
+<div class="title">${i.name}</div>
+<div class="price">₹${i.rate} <span class="mrp">₹${i.mrp}</span></div>
+<div class="badge">${i.scheme||""}</div>
 
-<div class="item-title">${i.name}</div>
-<div class="meta">${i.pack}</div>
-<div class="meta">MRP: ${i.mrp}</div>
-<div class="meta">PTR: ₹${i.rate}</div>
-<div class="meta">Sch: ${i.scheme||"-"}</div>
-
-<div class="qty-control">
-<button onclick="updateQty('${i.name}',${i.rate},${index},-1)">−</button>
-<input type="number" id="qty_${index}" value="0"
-onchange="manualQty('${i.name}',${i.rate},${index})">
-<button onclick="updateQty('${i.name}',${i.rate},${index},1)">+</button>
+<div class="qty">
+<button onclick="changeQty('${i.name}',${i.rate},-1)">−</button>
+<div>${qty}</div>
+<button onclick="changeQty('${i.name}',${i.rate},1)">+</button>
 </div>
 
-</div>
-
-`).join("");
+</div>`;
 }
 
-function updateQty(name,rate,index,delta){
+function changeQty(name,rate,delta){
 
-let input=document.getElementById("qty_"+index);
-let qty=parseInt(input.value)||0;
+let qty=(cart[name]?.qty||0)+delta;
 
-qty+=delta;
-if(qty<0)qty=0;
+if(qty<=0){delete cart[name]}
+else{cart[name]={qty,rate}}
 
-input.value=qty;
-syncCart(name,rate,qty);
+updateCartUI();
+openCompany(currentCompany);
 }
 
-function manualQty(name,rate,index){
-let qty=document.getElementById("qty_"+index).value;
-syncCart(name,rate,qty);
+function updateCartUI(){
+
+let total=0,count=0;
+
+for(let i in cart){
+total+=cart[i].qty*cart[i].rate;
+count+=cart[i].qty;
 }
 
-function syncCart(name,rate,qty){
-
-if(qty<=0){
-delete cart[name];
-}else{
-cart[name]={qty:parseInt(qty),rate:rate};
-}
-
-cartCount.innerText=Object.keys(cart).length;
+cartItems.innerText=count+" items";
+cartTotal.innerText=total.toFixed(2);
 }
 
 function openCart(){
 
-let total=0;
 let html="";
 
-for(let item in cart){
-let amt=cart[item].qty*cart[item].rate;
-total+=amt;
+for(let i in cart){
 
-html+=`<div class="card">${item}<br>
-${cart[item].qty} x ₹${cart[item].rate}
-<div style="float:right;font-weight:600">₹${amt.toFixed(2)}</div>
+let amt=cart[i].qty*cart[i].rate;
+
+html+=`
+<div class="card">
+${i}<br>
+${cart[i].qty} x ₹${cart[i].rate}
+<div style="float:right">₹${amt.toFixed(2)}</div>
 </div>`;
 }
 
-html+=`<div class="card"><b>Total ₹${total.toFixed(2)}</b></div>`;
+screen.innerHTML=html;
+}
 
-itemScreen.innerHTML=html;
-header.innerHTML="⬅ Cart";
-header.onclick=()=>openItems(currentCompany);
+function searchData(val){
+
+val=val.toLowerCase();
+
+if(mode=="company"){
+showCompanies();
+}
+
 }
 
 </script>
