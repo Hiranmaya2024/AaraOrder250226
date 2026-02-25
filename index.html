@@ -1,56 +1,165 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aara Order 250226</title>
-    <link rel="stylesheet" href="styles.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AAradhya Order Book</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body{font-family:arial;background:#f2f2f2;margin:0}
+.header{background:#0b5ed7;color:#fff;padding:14px;text-align:center;font-size:20px}
+.container{padding:10px}
+.card{background:#fff;padding:12px;margin:8px 0;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.1)}
+button{background:#0b5ed7;color:#fff;border:none;padding:10px;width:100%;border-radius:8px;margin-top:6px}
+input{width:100%;padding:8px;margin-top:6px}
+.flex{display:flex;justify-content:space-between}
+</style>
 </head>
+
 <body>
-    <div id="app">
-        <div id="company-selection">
-            <h1>Select Company</h1>
-            <select id="company-dropdown">
-                <option value="company1">Company 1</option>
-                <option value="company2">Company 2</option>
-                <option value="company3">Company 3</option>
-            </select>
-            <button id="continue-to-items">Continue</button>
-        </div>
 
-        <div id="item-selection" style="display: none;">
-            <h1>Select Items</h1>
-            <div id="items-list">
-                <div class="item">
-                    <p>Item 1</p>
-                    <input type="number" value="0" min="0" id="quantity-item1">
-                </div>
-                <div class="item">
-                    <p>Item 2</p>
-                    <input type="number" value="0" min="0" id="quantity-item2">
-                </div>
-                <div class="item">
-                    <p>Item 3</p>
-                    <input type="number" value="0" min="0" id="quantity-item3">
-                </div>
-            </div>
-            <button id="view-cart">View Cart</button>
-        </div>
+<div class="header">🧾 AAradhya Order Book</div>
 
-        <div id="cart-view" style="display: none;">
-            <h1>Cart View</h1>
-            <div id="cart-items"></div>
-            <button id="proceed-to-order-preview">Proceed to Order Preview</button>
-        </div>
+<div class="container">
 
-        <div id="order-preview" style="display: none;">
-            <h1>Order Preview</h1>
-            <div id="preview-details"></div>
-            <div id="tax-calculation">Tax: <span id="tax-amount"></span></div>
-            <button id="share-order">Share/Save Order</button>
-        </div>
-    </div>
+<div class="card">
+<label>Party Name</label>
+<input type="text" id="party">
+</div>
 
-    <script src="script.js"></script>
+<div id="companyList"></div>
+<div id="itemList"></div>
+<div id="cart"></div>
+
+</div>
+
+<script>
+
+const url="https://docs.google.com/spreadsheets/d/e/2PACX-1vRV-mdlstMlh93FOZn0udO4eCUyryl_pDziljwksKkWGVdxE2LH8excr6D-cABN61O-JrFigpecb42i/pub?gid=0&single=true&output=csv";
+
+let data=[],cartData=[];
+
+fetch(url).then(r=>r.text()).then(csv=>{
+let rows=csv.split("\n").slice(1);
+
+data=rows.map(r=>{
+let c=r.split(",");
+return{
+company:c[0],
+name:c[1],
+pack:c[2],
+rate:parseFloat(c[3]),
+mrp:c[4],
+scheme:c[7]
+}
+});
+
+loadCompanies();
+});
+
+function loadCompanies(){
+let companies=[...new Set(data.map(d=>d.company))];
+
+companyList.innerHTML=companies.map(c=>`
+<div class="card" onclick="loadItems('${c}')">${c}</div>
+`).join("");
+
+itemList.innerHTML="";
+}
+
+function loadItems(comp){
+
+let items=data.filter(d=>d.company===comp);
+
+itemList.innerHTML=`
+<button onclick="loadCompanies()">⬅ Back</button>
+${items.map(i=>`
+<div class="card">
+<b>${i.name}</b><br>
+${i.pack}<br>
+MRP: ${i.mrp} | PTR: ₹${i.rate}<br>
+Scheme: ${i.scheme || "-"}
+<input type="number" id="q_${i.name}" placeholder="Qty">
+<button onclick="addCart('${i.name}','${i.pack}',${i.rate})">Add</button>
+</div>
+`).join("")}
+`;
+}
+
+function addCart(name,pack,rate){
+
+let qty=document.getElementById("q_"+name).value;
+if(!qty) return;
+
+cartData.push({name,pack,rate,qty});
+
+loadCart();
+}
+
+function loadCart(){
+
+let total=0;
+
+cart.innerHTML=`
+<h3>🛒 Cart</h3>
+${cartData.map(c=>{
+let amt=c.rate*c.qty;
+total+=amt;
+
+return`
+<div class="card flex">
+<div>${c.name}<br>${c.qty} x ${c.rate}</div>
+<div>₹${amt.toFixed(2)}</div>
+</div>`;
+}).join("")}
+
+<div class="card flex"><b>Total</b><b>₹${total.toFixed(2)}</b></div>
+
+<button onclick="finalOrder(${total})">✅ Confirm Order</button>
+`;
+}
+
+function finalOrder(total){
+
+let party=document.getElementById("party").value;
+
+let msg="*AARADHYA PHARMACEUTICALS*%0A";
+msg+="Party : "+party+"%0A%0A";
+
+cartData.forEach((c,i)=>{
+let amt=c.rate*c.qty;
+msg+=`${i+1}. ${c.name} (${c.pack})%0AQty : ${c.qty}  Rate : ${c.rate}  Amount : ${amt}%0A`;
+});
+
+msg+=`%0ATotal : ₹${total}`;
+
+window.open("https://wa.me/?text="+msg);
+
+pdf(party,total);
+}
+
+function pdf(party,total){
+
+const {jsPDF}=window.jspdf;
+let doc=new jsPDF();
+
+doc.text("AAradhya Pharmaceuticals",20,20);
+doc.text("Party: "+party,20,30);
+
+let y=40;
+
+cartData.forEach((c,i)=>{
+doc.text(`${i+1}. ${c.name} ${c.qty} x ${c.rate}`,20,y);
+y+=10;
+});
+
+doc.text("Total: "+total,20,y+10);
+
+doc.save("Order.pdf");
+}
+
+</script>
+
 </body>
 </html>
