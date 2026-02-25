@@ -15,31 +15,63 @@ body{font-family:Poppins;margin:0;background:#f4f6f9}
 .header{
 background:#0b5ed7;color:#fff;padding:14px;
 font-size:18px;font-weight:600;
-display:flex;align-items:center;gap:10px
+display:flex;align-items:center
 }
 
-.container{padding:12px}
+.container{padding:10px}
+
+.grid2{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+}
+
+@media(min-width:700px){
+.grid2{grid-template-columns:repeat(3,1fr);}
+}
 
 .card{
 background:#fff;
-padding:14px;
-margin-bottom:12px;
-border-radius:14px;
-box-shadow:0 3px 8px rgba(0,0,0,.08)
+padding:12px;
+border-radius:12px;
+box-shadow:0 2px 6px rgba(0,0,0,.08)
 }
 
-.company{font-size:16px;font-weight:600}
+.company{
+font-weight:600;
+font-size:14px;
+text-align:center;
+}
 
-.item-title{font-weight:600;font-size:15px}
+.item-title{
+font-weight:600;
+font-size:13px;
+min-height:36px;
+}
 
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;margin-top:6px}
+.meta{
+font-size:12px;
+margin-top:4px;
+}
+
+.qtybox{
+display:flex;
+gap:6px;
+margin-top:6px;
+}
+
+.qtybox input{
+flex:1;
+padding:6px;
+border-radius:6px;
+border:1px solid #ddd;
+}
 
 button{
 background:#0b5ed7;color:#fff;border:none;
-padding:10px;border-radius:8px;width:100%;margin-top:8px
+padding:8px;border-radius:6px;width:100%;
+font-size:12px;margin-top:4px
 }
-
-input{width:100%;padding:8px;margin-bottom:10px;border-radius:8px;border:1px solid #ddd}
 
 .fab{
 position:fixed;bottom:20px;right:20px;
@@ -49,10 +81,6 @@ font-weight:600;box-shadow:0 4px 10px rgba(0,0,0,.2)
 }
 
 .hidden{display:none}
-
-.qtybox{display:flex;gap:6px;margin-top:6px}
-.qtybox button{width:35%}
-.qtybox input{text-align:center}
 
 .totalBox{
 background:#fff;
@@ -74,8 +102,8 @@ font-size:18px
 
 <input type="text" id="party" placeholder="Enter Party Name">
 
-<div id="companyScreen"></div>
-<div id="itemScreen" class="hidden"></div>
+<div id="companyScreen" class="grid2"></div>
+<div id="itemScreen" class="grid2 hidden"></div>
 <div id="cartScreen" class="hidden"></div>
 
 </div>
@@ -116,7 +144,6 @@ companyScreen.innerHTML=companies.map(c=>`
 }
 
 function openItems(comp){
-
 currentCompany=comp;
 header.innerHTML=`⬅ ${comp}`;
 companyScreen.classList.add("hidden");
@@ -127,19 +154,16 @@ let items=data.filter(d=>d.company===comp);
 itemScreen.innerHTML=items.map(i=>`
 <div class="card">
 <div class="item-title">${i.name}</div>
-<div>${i.pack}</div>
-
-<div class="grid">
-<div>MRP: ${i.mrp}</div>
-<div>PTR: ₹${i.rate}</div>
-<div>Scheme:</div>
-<div>${i.scheme||"-"}</div>
-</div>
+<div class="meta">${i.pack}</div>
+<div class="meta">MRP: ${i.mrp}</div>
+<div class="meta">PTR: ₹${i.rate}</div>
+<div class="meta">Sch: ${i.scheme||"-"}</div>
 
 <div class="qtybox">
 <input type="number" id="q_${i.name}" placeholder="Qty">
-<button onclick="addCart('${i.name}','${i.pack}',${i.rate})">Add</button>
 </div>
+
+<button onclick="addCart('${i.name}','${i.pack}',${i.rate})">Add</button>
 </div>
 `).join("");
 
@@ -147,7 +171,6 @@ header.onclick=loadCompanies;
 }
 
 function addCart(name,pack,rate){
-
 let qty=document.getElementById("q_"+name).value;
 if(!qty) return;
 
@@ -198,7 +221,6 @@ msg+=`${i+1}. ${c.name} (${c.pack})%0AQty : ${c.qty} Rate : ${c.rate} Amount : $
 msg+=`%0ATotal : ₹${total}`;
 
 window.open("https://wa.me/?text="+msg);
-
 }
 
 </script>
