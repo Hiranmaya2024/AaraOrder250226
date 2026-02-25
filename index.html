@@ -1,48 +1,208 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AAradhya Order App</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Aaradhya Pharma Order App</title>
 
 <style>
-body{font-family:Arial;margin:0;background:#f1f3f6}
-.header{background:#0b5ed7;color:#fff;padding:14px;font-size:18px}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:10px}
-.card{background:#fff;padding:12px;border-radius:10px;
-box-shadow:0 2px 6px rgba(0,0,0,.1)}
-.loading{text-align:center;padding:20px;font-weight:bold}
+body{font-family:Arial;margin:0;background:#f5f5f5}
+
+/* SCREENS */
+.screen{display:none;padding:15px}
+.active{display:block}
+
+/* WELCOME */
+#welcome{
+display:flex;align-items:center;justify-content:center;
+height:100vh;font-size:22px;font-weight:bold;
+background:#0a7cff;color:white;text-align:center;cursor:pointer
+}
+
+/* COMPANY GRID */
+.company{
+background:white;padding:15px;margin:8px 0;border-radius:10px;
+box-shadow:0 2px 5px rgba(0,0,0,.1);
+font-weight:bold;cursor:pointer
+}
+
+/* PRODUCT CARD */
+.card{
+background:white;border-radius:12px;padding:12px;margin:10px 0;
+box-shadow:0 2px 6px rgba(0,0,0,.12)
+}
+.row{display:flex;justify-content:space-between;align-items:center}
+.qty{
+display:flex;gap:8px;align-items:center
+}
+button{
+background:#0a7cff;color:white;border:none;
+padding:8px 14px;border-radius:8px;font-weight:bold
+}
+button:active{transform:scale(.95)}
+.place{width:100%;margin-top:15px;font-size:16px}
+
+/* SUMMARY */
+.summary{background:white;padding:12px;border-radius:10px;margin:8px 0}
+
 </style>
 </head>
 
 <body>
 
-<div class="header">AAradhya Order Book</div>
-<div id="screen" class="loading">Loading catalogue...</div>
+<!-- WELCOME -->
+<div id="welcome" class="active">
+Welcome To Aaradhya Pharmaceuticals<br/>Tap Anywhere
+</div>
+
+<!-- COMPANY SCREEN -->
+<div id="companyScreen" class="screen">
+<h3>Select Company</h3>
+<div id="companyList"></div>
+</div>
+
+<!-- PRODUCT SCREEN -->
+<div id="productScreen" class="screen">
+<h3 id="companyTitle"></h3>
+<div id="productList"></div>
+<button class="place" onclick="showSummary()">Place Order</button>
+</div>
+
+<!-- SUMMARY SCREEN -->
+<div id="summaryScreen" class="screen">
+<h3>Order Summary</h3>
+<div id="summary"></div>
+<button class="place" onclick="shareWhatsApp()">Share on WhatsApp</button>
+</div>
 
 <script>
+const csvUrl="https://docs.google.com/spreadsheets/d/e/2PACX-1vRV-mdlstMlh93FOZn0udO4eCUyryl_pDziljwksKkWGVdxE2LH8excr6D-cABN61O-JrFigpecb42i/pub?gid=0&single=true&output=csv";
 
-function callback(data){
+let data=[],cart={},selectedCompany="";
 
-const headers = data[0];
+/* WELCOME AUTO NEXT */
+setTimeout(()=>showCompany(),5000)
+document.getElementById("welcome").onclick=showCompany
 
-const rows = data.slice(1).map(r=>({
-company:r[0],
-item:r[1]
-}));
-
-const companies=[...new Set(rows.map(r=>r.company))];
-
-screen.className="grid";
-
-screen.innerHTML = companies.map(c=>`
-<div class="card">${c}</div>
-`).join("");
-
+function showCompany(){
+switchScreen("companyScreen")
+loadCSV()
 }
 
-</script>
+/* SCREEN SWITCH */
+function switchScreen(id){
+document.querySelectorAll(".screen,#welcome").forEach(s=>s.classList.remove("active"))
+document.getElementById(id).classList.add("active")
+}
 
-<script src="https://script.google.com/macros/s/AKfycbxe_e5dcuA0WK1X2iWA1b65FXLDt9DomJWp9zr0q7bhxAZQq1OjEFO0DUny2_Uy3r4-/exec"></script>
+/* LOAD CSV */
+async function loadCSV(){
+const res=await fetch(csvUrl)
+const text=await res.text()
+const rows=text.split("\n").slice(1)
+
+data=rows.map(r=>{
+let c=r.split(",")
+return{
+company:c[0],
+name:c[1],
+pack:c[2],
+rate:c[3],
+mrp:c[4],
+tax:c[5],
+composition:c[6],
+scheme:c[7]
+}
+})
+
+showCompanies()
+}
+
+/* SHOW COMPANIES */
+function showCompanies(){
+let companies=[...new Set(data.map(d=>d.company))]
+let html=""
+companies.forEach(c=>{
+html+=`<div class="company" onclick="showProducts('${c}')">${c}</div>`
+})
+document.getElementById("companyList").innerHTML=html
+}
+
+/* SHOW PRODUCTS */
+function showProducts(company){
+selectedCompany=company
+switchScreen("productScreen")
+document.getElementById("companyTitle").innerText=company
+
+let items=data.filter(d=>d.company===company)
+let html=""
+
+items.forEach((item,i)=>{
+html+=`
+<div class="card">
+<b>${item.name}</b><br>
+${item.pack}<br>
+MRP: ₹${item.mrp} | Rate: ₹${item.rate}
+
+<div class="row">
+<div class="qty">
+<button onclick="changeQty('${item.name}',-1)">-</button>
+<span id="q_${item.name}">0</span>
+<button onclick="changeQty('${item.name}',1)">+</button>
+</div>
+</div>
+</div>`
+})
+
+document.getElementById("productList").innerHTML=html
+}
+
+/* QTY CHANGE */
+function changeQty(name,val){
+if(!cart[name]) cart[name]=0
+cart[name]+=val
+if(cart[name]<0) cart[name]=0
+document.getElementById("q_"+name).innerText=cart[name]
+}
+
+/* SUMMARY */
+function showSummary(){
+switchScreen("summaryScreen")
+let html="",total=0
+
+for(let name in cart){
+if(cart[name]>0){
+let item=data.find(d=>d.name===name)
+let value=cart[name]*item.rate
+total+=value
+html+=`<div class="summary">
+${name} x ${cart[name]} = ₹${value}
+</div>`
+}
+}
+
+html+=`<h3>Total: ₹${total}</h3>`
+document.getElementById("summary").innerHTML=html
+}
+
+/* WHATSAPP SHARE */
+function shareWhatsApp(){
+let text="Order - Aaradhya Pharmaceuticals%0A"
+let total=0
+
+for(let name in cart){
+if(cart[name]>0){
+let item=data.find(d=>d.name===name)
+let value=cart[name]*item.rate
+total+=value
+text+=`${name} x ${cart[name]} = ₹${value}%0A`
+}
+}
+text+=`Total = ₹${total}`
+
+window.open(`https://wa.me/?text=${text}`)
+}
+</script>
 
 </body>
 </html>
