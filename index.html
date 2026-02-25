@@ -6,90 +6,40 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <style>
 
 body{font-family:Poppins;margin:0;background:#f4f6f9}
 
-.header{
-background:#0b5ed7;color:#fff;padding:14px;
-font-size:18px;font-weight:600;
-display:flex;align-items:center
-}
+.header{background:#0b5ed7;color:#fff;padding:14px;font-size:18px;font-weight:600}
 
 .container{padding:10px}
 
-.grid2{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:10px;
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:700px){.grid2{grid-template-columns:repeat(3,1fr)}}
+
+.card{background:#fff;padding:12px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+
+.item-title{font-weight:600;font-size:13px;min-height:34px}
+.meta{font-size:12px}
+
+.qty-control{display:flex;align-items:center;margin-top:6px}
+.qty-control button{
+width:32px;height:32px;border:none;background:#0b5ed7;color:#fff;font-size:18px;border-radius:6px
+}
+.qty-control input{
+width:45px;text-align:center;margin:0 6px;border:1px solid #ddd;border-radius:6px;height:32px
 }
 
-@media(min-width:700px){
-.grid2{grid-template-columns:repeat(3,1fr);}
-}
-
-.card{
-background:#fff;
-padding:12px;
-border-radius:12px;
-box-shadow:0 2px 6px rgba(0,0,0,.08)
-}
-
-.company{
-font-weight:600;
-font-size:14px;
-text-align:center;
-}
-
-.item-title{
-font-weight:600;
-font-size:13px;
-min-height:36px;
-}
-
-.meta{
-font-size:12px;
-margin-top:4px;
-}
-
-.qtybox{
-display:flex;
-gap:6px;
-margin-top:6px;
-}
-
-.qtybox input{
-flex:1;
-padding:6px;
-border-radius:6px;
-border:1px solid #ddd;
-}
-
-button{
-background:#0b5ed7;color:#fff;border:none;
-padding:8px;border-radius:6px;width:100%;
-font-size:12px;margin-top:4px
+button.addbtn{
+background:#198754;color:#fff;border:none;padding:7px;border-radius:6px;width:100%;margin-top:6px;font-size:12px
 }
 
 .fab{
 position:fixed;bottom:20px;right:20px;
-background:#198754;color:#fff;
-padding:14px 18px;border-radius:50px;
-font-weight:600;box-shadow:0 4px 10px rgba(0,0,0,.2)
+background:#198754;color:#fff;padding:14px 18px;border-radius:50px;font-weight:600
 }
 
 .hidden{display:none}
-
-.totalBox{
-background:#fff;
-position:sticky;
-bottom:0;
-padding:12px;
-font-weight:600;
-font-size:18px
-}
 
 </style>
 </head>
@@ -104,7 +54,6 @@ font-size:18px
 
 <div id="companyScreen" class="grid2"></div>
 <div id="itemScreen" class="grid2 hidden"></div>
-<div id="cartScreen" class="hidden"></div>
 
 </div>
 
@@ -121,10 +70,7 @@ let rows=csv.split("\n").slice(1);
 
 data=rows.map(r=>{
 let c=r.split(",");
-return{
-company:c[0],name:c[1],pack:c[2],
-rate:parseFloat(c[3]),mrp:c[4],scheme:c[7]
-}
+return{company:c[0],name:c[1],pack:c[2],rate:parseFloat(c[3]),mrp:c[4],scheme:c[7]}
 });
 
 loadCompanies();
@@ -132,26 +78,26 @@ loadCompanies();
 
 function loadCompanies(){
 header.innerHTML="🏢 Companies";
-companyScreen.classList.remove("hidden");
-itemScreen.classList.add("hidden");
-cartScreen.classList.add("hidden");
 
 let companies=[...new Set(data.map(d=>d.company))];
 
 companyScreen.innerHTML=companies.map(c=>`
-<div class="card company" onclick="openItems('${c}')">${c}</div>
+<div class="card" onclick="openItems('${c}')"><b>${c}</b></div>
 `).join("");
 }
 
 function openItems(comp){
+
 currentCompany=comp;
 header.innerHTML=`⬅ ${comp}`;
+header.onclick=loadCompanies;
+
 companyScreen.classList.add("hidden");
 itemScreen.classList.remove("hidden");
 
 let items=data.filter(d=>d.company===comp);
 
-itemScreen.innerHTML=items.map(i=>`
+itemScreen.innerHTML=items.map((i,index)=>`
 <div class="card">
 <div class="item-title">${i.name}</div>
 <div class="meta">${i.pack}</div>
@@ -159,68 +105,55 @@ itemScreen.innerHTML=items.map(i=>`
 <div class="meta">PTR: ₹${i.rate}</div>
 <div class="meta">Sch: ${i.scheme||"-"}</div>
 
-<div class="qtybox">
-<input type="number" id="q_${i.name}" placeholder="Qty">
+<div class="qty-control">
+<button onclick="changeQty(${index},-1)">−</button>
+<input type="number" id="qty_${index}" value="0">
+<button onclick="changeQty(${index},1)">+</button>
 </div>
 
-<button onclick="addCart('${i.name}','${i.pack}',${i.rate})">Add</button>
+<button class="addbtn" onclick="addCart('${i.name}','${i.pack}',${i.rate},${index})">Add</button>
+
 </div>
 `).join("");
-
-header.onclick=loadCompanies;
 }
 
-function addCart(name,pack,rate){
-let qty=document.getElementById("q_"+name).value;
-if(!qty) return;
+function changeQty(index,delta){
+
+let input=document.getElementById("qty_"+index);
+let value=parseInt(input.value)||0;
+value+=delta;
+if(value<0)value=0;
+input.value=value;
+}
+
+function addCart(name,pack,rate,index){
+
+let qty=document.getElementById("qty_"+index).value;
+if(qty<=0)return;
 
 cart.push({name,pack,rate,qty});
 cartCount.innerText=cart.length;
+
+document.getElementById("qty_"+index).value=0;
 }
 
 function openCart(){
 
-header.innerHTML="⬅ Cart";
-cartScreen.classList.remove("hidden");
-companyScreen.classList.add("hidden");
-itemScreen.classList.add("hidden");
-
 let total=0;
 
-cartScreen.innerHTML=cart.map(c=>{
+let html=cart.map(c=>{
 let amt=c.qty*c.rate;
 total+=amt;
 
-return`
-<div class="card">
-${c.name}<br>
-${c.qty} x ₹${c.rate}
-<div style="float:right;font-weight:600">₹${amt.toFixed(2)}</div>
-</div>`;
-}).join("")+
+return `<div class="card">${c.name}<br>${c.qty} x ₹${c.rate}
+<div style="float:right;font-weight:600">₹${amt.toFixed(2)}</div></div>`
+}).join("");
 
-`<div class="totalBox">Total ₹${total.toFixed(2)}
-<button onclick="placeOrder(${total})">Confirm Order</button>
-</div>`;
+html+=`<div class="card"><b>Total ₹${total.toFixed(2)}</b></div>`;
 
+itemScreen.innerHTML=html;
+header.innerHTML="⬅ Cart";
 header.onclick=()=>openItems(currentCompany);
-}
-
-function placeOrder(total){
-
-let party=document.getElementById("party").value;
-
-let msg="*AARADHYA PHARMACEUTICALS*%0A";
-msg+="Party : "+party+"%0A%0A";
-
-cart.forEach((c,i)=>{
-let amt=c.qty*c.rate;
-msg+=`${i+1}. ${c.name} (${c.pack})%0AQty : ${c.qty} Rate : ${c.rate} Amount : ${amt}%0A`;
-});
-
-msg+=`%0ATotal : ₹${total}`;
-
-window.open("https://wa.me/?text="+msg);
 }
 
 </script>
